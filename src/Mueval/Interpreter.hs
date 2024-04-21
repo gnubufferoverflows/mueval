@@ -37,6 +37,7 @@ import Language.Haskell.Interpreter (
     setImportsQ,
     setTopLevelModules,
     typeOf,
+    kindOf
  )
 import Language.Haskell.Interpreter.Unsafe (unsafeSetGhcOption)
 
@@ -55,7 +56,7 @@ readExt s = case reads s of
    functions, typecheck, set resource limits for this
    thread, and do some error handling.
 -}
-interpreter :: Options -> Interpreter (String, String, String)
+interpreter :: Options -> Interpreter (String, String, String, Maybe String)
 interpreter
     Options
         { extensions = exts
@@ -67,6 +68,7 @@ interpreter
         , packageTrust = trust
         , trustedPackages = trustPkgs
         , modules = m
+        , printKind = evalKind
         } = do
         let lexts = (guard exts >> glasgowExtensions) ++ map readExt nexts
         -- Explicitly adding ImplicitPrelude because of
@@ -115,8 +117,10 @@ interpreter
             if noEval
                 then return ""
                 else eval expr
-
-        return (expr, etype, result)
+        if evalKind then do 
+                    ekind <- kindOf expr
+                    return (expr, etype, result, Just ekind)
+        else return (expr, etype, result, Nothing)
 
 {- | Wrapper around 'interpreter'; supplies a fresh GHC API session and
  error-handling. The arguments are largely passed on, and the results lightly parsed.
@@ -126,10 +130,11 @@ interpreterSession opts = do
     r <- runInterpreter (interpreter opts)
     case r of
         Left err -> printInterpreterError err
-        Right (e, et, val) -> do
+        Right (e, et, val, kindMaybe) -> do
             when
                 (printType opts)
                 (sayIO e >> sayIOOneLine et)
+            forM_ kindMaybe sayIOOneLine
             sayIO val
   where
     sayIOOneLine = sayIO . unwords . words

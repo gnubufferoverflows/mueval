@@ -13,6 +13,7 @@ data Options = Options
     , loadFile :: String
     , user :: String
     , printType :: Bool
+    , printKind :: Bool
     , typeOnly :: Bool
     , extensions :: Bool
     , namedExtensions :: [String]
@@ -33,6 +34,7 @@ defaultOptions =
         , user = ""
         , loadFile = ""
         , printType = False
+        , printKind = False
         , typeOnly = False
         , extensions = False
         , namedExtensions = []
@@ -90,6 +92,11 @@ options =
         ["inferred-type"]
         (NoArg (\opts -> opts{printType = True}))
         "Whether to enable printing of inferred type and the expression (as Mueval sees it). Defaults to false."
+    , Option
+        "k"
+        ["print-kind"]
+        (NoArg (\opts -> opts{printKind = True}))
+        "Whether to print the kind of a specific expression, when the inferred-type flag is enabled. Defaults to false."
     , Option
         "T"
         ["type-only"]
